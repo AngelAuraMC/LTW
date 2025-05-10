@@ -133,6 +133,13 @@ void pick_format(GLint internalformat, GLenum* type, GLenum* format) {
         case GL_RGBA16I: *format=GL_RGBA_INTEGER; *type=GL_SHORT; break;
         case GL_RGBA32I: *format=GL_RGBA_INTEGER; *type=GL_INT; break;
         case GL_RGBA32UI: *format=GL_RGBA_INTEGER; *type=GL_UNSIGNED_INT; break;
+        // Sized depth formats. Unsized formats handled before this function
+        case GL_DEPTH_COMPONENT16: *format = GL_DEPTH_COMPONENT; *type = GL_UNSIGNED_SHORT; break;
+        case GL_DEPTH_COMPONENT24: *format = GL_DEPTH_COMPONENT; *type = GL_UNSIGNED_INT; break;
+        case GL_DEPTH_COMPONENT32F: *format = GL_DEPTH_COMPONENT; *type = GL_FLOAT; break;
+        case GL_DEPTH24_STENCIL8: *format = GL_DEPTH_STENCIL; *type = GL_UNSIGNED_INT_24_8; break;
+        case GL_DEPTH32F_STENCIL8: *format = GL_DEPTH_STENCIL; *type = GL_FLOAT_32_UNSIGNED_INT_24_8_REV; break;
+        case GL_STENCIL_INDEX8: *format = GL_STENCIL_INDEX; *type = GL_UNSIGNED_BYTE; break;
     }
 }
 
@@ -142,6 +149,17 @@ INTERNAL void pick_internalformat(GLint *internalformat, GLenum* type, GLenum* f
     // This function converts appropriate unsized formats to sized ones according to the type.
     bool convert_data;
     switch (*internalformat) {
+        case GL_DEPTH_COMPONENT32:
+            // 1.21.5 workaround: fix internalformat (not handled in ES drivers cause it's from GL 1.4)
+            // Work around by selecting the equivalent type (for float) or 24-bit (for int)
+            if(*type == GL_FLOAT) {
+                *internalformat = GL_DEPTH_COMPONENT32F;
+            } else {
+                *internalformat = GL_DEPTH_COMPONENT24;
+                if(*type != GL_UNSIGNED_INT) convert_data = true;
+                *type = GL_UNSIGNED_INT;
+            }
+            break;
         case GL_DEPTH_COMPONENT:
             *internalformat =  pick_depth_internalformat(type, &convert_data);
             break;
